@@ -3,7 +3,6 @@ import requests
 import csv
 import re
 import time
-import random
 from time import gmtime, strftime
 import os
 
@@ -15,7 +14,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:86.0)'
 def scrape_pending_tx(N):
     """
     Scrapes first 50 tx (<2 sec old) on pending page, returns list of tuples: (bid, time).
-    N denotes number of iterations. After each iter wait (2-5) seconds to prevent
+    N denotes number of iterations. After each iter wait (2) seconds to prevent
     duplicate observations
     """
     
@@ -38,16 +37,26 @@ def scrape_pending_tx(N):
             if tx_age > 2:    #dont want to overlap with old txs
                 break
             
+            # transaction data
+            tx_hash = tx_data[0].get_text()
+            tx_nonce = int(tx_data[1].get_text())
+            #tx_age meaningless since always < 2, so instead use tx_time
+            tx_time = tx_data[2].find_all('span')[0]['title']  # string of date and time of tx
             tx_gas_limit = int(tx_data[3].get_text())
             tx_gas_price_string = tx_data[4].get_text() # of form 'x,xxx Gwei'
             tx_gas_price_string = tx_gas_price_string.replace(",","")
             tx_gas_price = float(tx_gas_price_string.replace(" Gwei", ""))
+            tx_from = tx_data[5].get_text()
+            tx_to = tx_data[6].get_text()
+            tx_value_string = tx_data[7].get_text()  # need to format to float
+            tx_value_string = tx_value_string.replace(" Ether","")
+            tx_value = float(tx_value_string)
+            #tx_bid = tx_gas_limit * tx_gas_price
+          
             
-            tx_bid = tx_gas_limit * tx_gas_price
-            tx_time = tx_data[2].find_all('span')[0]['title']  # string of date and time of tx
-            
-            data.append((tx_bid, tx_time))
-        time.sleep(random.randint(2, 5))
+            data.append((tx_hash,tx_nonce, tx_time, tx_gas_limit, 
+                         tx_gas_price, tx_from, tx_to, tx_value))
+        time.sleep(2)
     return data
 
  
